@@ -1,0 +1,30 @@
+<!DOCTYPE html>
+<html>
+    <head>
+        <link rel="stylesheet" href="./index.css">
+        <script src="./index.js"></script>
+        <script src="./jscolor.js"></script>
+    </head>
+    <body>
+        <canvas id="canvas" width="1000" height="500">
+            Canvas para dibujar
+        </canvas>
+        <span id="customCursor"></span>
+        <div class="canvasMenu">
+            <div class="setBrushColor">
+                <label class="setBrushColorLabel">Select color</label>
+                <input class="jscolor" value="#2a4">
+                <input class="setBrushColorForce" type="checkbox">
+            </div>
+            <div class="setCursorRadiusWrapper">
+                <label class="setCursorRadiusLabel">Set stroke radius</label>
+                <input class="setCursorRadiusInput" type="number" min="1" max="2000" placeholder="min: 1 (px)"> px
+            </div>
+            <div class="setOpacityWrapper">
+                <label class="setOpacityLabel">Set opacity</label>
+                <input class="setOpacityInput" type="number" min="0.1" max="1" step="0.1" placeholder="0.1 - 1">
+            </div>
+            <p class="clearCanvasButton">Clear Canvas</p>
+        </div>
+    </body>
+</html>
