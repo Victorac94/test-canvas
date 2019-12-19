@@ -2,6 +2,7 @@ window.onload = () =>  {
     const canvas = document.getElementById("canvas");
     const ctx = canvas.getContext("2d");
     const clearCanvasButton = document.querySelector(".clearCanvasButton");
+    const canvasMenu = document.querySelector(".canvasMenu");
     const brush = document.getElementById("customCursor");
     const setBrushRadiusInput = document.querySelector(".setCursorRadiusInput");
     const setOpacityInput = document.querySelector(".setOpacityInput");
@@ -20,6 +21,21 @@ window.onload = () =>  {
         canvas.width = document.documentElement.offsetWidth;
     };
 
+    // Get canvas snapshot
+    getCanvasSnapshot = () => {
+        return canvas.toDataURL("image/png", 1.0); // Defines both type of image and quality
+    }
+
+    // Put snapshot of canvas previously taken in new canvas
+    setCanvasSnapshot = snapshot => {
+        let canvasImage = new Image();
+
+        canvasImage.onload = function() {
+            ctx.drawImage(canvasImage, 0, 0);
+        }
+        canvasImage.src = snapshot;
+    }
+    
     // Handle the change of size and position of the cursor while manipulating theese parameters
     setBrush = (position, size, mouse) => {
         // Move custom cursor position alongside mouse coordinates XY
@@ -67,8 +83,26 @@ window.onload = () =>  {
     }
 
     // Set color opacity of brush
-    setBrushOpacity = myInput => {
-        alphaColor = myInput.target.value;
+    setBrushOpacity = (fromInput, bigger, myInput) => {
+        // If opacity value comes from input tag
+        if (fromInput) {
+            alphaColor = myInput.target.value;
+        } 
+        else if (alphaColor >= 1.0 && bigger) {
+            alphaColor = 1;
+            myInput.value = 1;
+        }
+        else if (alphaColor <= 0.1 && !bigger) {
+            alphaColor = 0.1;
+            myInput.value = 0.1;
+        }
+        else if (bigger) {
+            alphaColor = alphaColor + 0.1;
+            myInput.value = alphaColor;
+        } else {
+            alphaColor = alphaColor - 0.1;
+            myInput.value = alphaColor;
+        }
     }
 
     // Get a random rgba() color to draw
@@ -157,6 +191,14 @@ window.onload = () =>  {
         return `rgba(${arrayColor[0]}, ${arrayColor[1]}, ${arrayColor[2]}, ${alphaColor})`;
     }
 
+    showHideCanvasMenu = () => {
+        if (canvasMenu.style.opacity === "0") {
+            canvasMenu.style.opacity = "1";
+        } else {
+            canvasMenu.style.opacity = "0";
+        }
+    }
+
     // IIFE. Set initial settings of canvas custom cursor (brush) and brush color
     (function() {
         setOpacityInput.value = alphaColor;
@@ -165,18 +207,24 @@ window.onload = () =>  {
         setCanvasDimensions();
     })();
 
+    // On window resize save drawings of canvas (Because on resize canvas resets the drawings)
     window.addEventListener("resize", () => {
+        let snapshot = getCanvasSnapshot();
         setCanvasDimensions();
+        setCanvasSnapshot(snapshot);
     })
 
+    // Make brush appear when mouse enters canvas
     document.addEventListener("mouseenter", ev => {
         brush.style.opacity = 1;
     });
 
+    // Make brush dissappear when mouse leaves canvas
     document.addEventListener("mouseleave", ev => {
         brush.style.opacity = 0;
     });
 
+    // Start painting
     document.addEventListener("mousedown", ev => {
         // Left mouse button
         if (ev.which == 1) {
@@ -185,6 +233,7 @@ window.onload = () =>  {
         }
     });
 
+    // Stop painting or clear canvas
     document.addEventListener("mouseup", ev => {
         // Left mouse button
         if (ev.which == 1) {
@@ -197,10 +246,12 @@ window.onload = () =>  {
         }
     });
 
+    // On mouse move set brush to follow the mouse/cursor
     document.addEventListener("mousemove", ev => {
         setBrush(true, true, ev);
     });
 
+    // Handle making brush radius bigger or smalled when scrolling down or up
     document.addEventListener("wheel", ev => {
         let scrollingUp;
 
@@ -212,18 +263,35 @@ window.onload = () =>  {
         setBrushRadius(scrollingUp, ev);
     });
 
+    // Show/hide canvas settings menu and change brush paint opacity
+    document.addEventListener("keydown", ev => {
+        if (ev.key === "h") {
+            showHideCanvasMenu();
+        } else if (ev.key === "+") {
+            let input = document.querySelector(".setOpacityInput");
+            setBrushOpacity(null, true, input);
+        } else if (ev.key === "-") {
+            let input = document.querySelector(".setOpacityInput");
+            setBrushOpacity(null, false, input);
+        }
+    })
+
+    // Handle brush painting color selected by the user
     jscolorInput.addEventListener("input", ev => {
         setBrushColor(ev);
     });
 
+    // Handle brush radius set by the user
     setBrushRadiusInput.addEventListener("input", ev => {
         setBrushRadius(false, false, ev);
     });
 
+    // Handle brush painting opacity set by the user
     setOpacityInput.addEventListener("input", ev => {
         setBrushOpacity(ev);
     });
     
+    // Handle clear entire canvas
     clearCanvasButton.addEventListener("click", ev => {
         clearCanvas();
     });
