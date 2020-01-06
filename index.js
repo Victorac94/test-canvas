@@ -9,7 +9,7 @@ window.onload = () =>  {
     const jscolorInput = document.querySelector(".jscolor");
     let forceBrushColor = document.querySelector(".setBrushColorForce");
     let shouldDraw = false; // Flag
-    let circleRadius = 20;
+    let customMouseRadius = 20;
     let strokeColor = null;
     let brushColor = null;
     let alphaColor = 0.5;
@@ -23,10 +23,10 @@ window.onload = () =>  {
 
     // Get canvas snapshot
     getCanvasSnapshot = () => {
-        return canvas.toDataURL("image/png", 1.0); // Defines both type of image and quality
+        return canvas.toDataURL("image/png", 1.0); // Defines type of image and quality of it
     }
 
-    // Put snapshot of canvas previously taken in new canvas
+    // Put snapshot of canvas previously taken in new resized canvas
     setCanvasSnapshot = snapshot => {
         let canvasImage = new Image();
 
@@ -36,17 +36,17 @@ window.onload = () =>  {
         canvasImage.src = snapshot;
     }
     
-    // Handle the change of size and position of the cursor while manipulating theese parameters
+    // Handle the change of size and position of the custom cursor while manipulating these (position, size) parameters
     setBrush = (position, size, mouse) => {
         // Move custom cursor position alongside mouse coordinates XY
         if (position) {
-            brush.style.transform = `translate(${mouse.clientX - circleRadius - (canvas.width/2)}px, ${mouse.clientY - circleRadius - (canvas.height/2)}px)`;
+            brush.style.transform = `translate(${mouse.clientX - customMouseRadius - (canvas.width/2)}px, ${mouse.clientY - customMouseRadius - (canvas.height/2)}px)`;
         }
 
         if (size) {
             // Size of custom cursor equal to set diameter
-            brush.style.width = circleRadius * 2 + "px";
-            brush.style.height = circleRadius * 2 + "px";
+            brush.style.width = customMouseRadius * 2 + "px";
+            brush.style.height = customMouseRadius * 2 + "px";
         }
 
         if (brush.style.opacity == 0) {
@@ -54,7 +54,7 @@ window.onload = () =>  {
         }
     }
 
-    // Set brush color while on user selected color mode
+    // Set brush color while on 'user selected' color mode
     setBrushColor = ev => {
         brushColor = ev.target.value;
     }
@@ -62,12 +62,12 @@ window.onload = () =>  {
     // Set radius of brush
     setBrushRadius = (scrollingUp, mouse, fromInput) => {
         if (scrollingUp) {
-            circleRadius += 1; // Make radius bigger
+            customMouseRadius += 1; // Make radius bigger
         }
-        else if (circleRadius >= 1) {
-            circleRadius -= 1; // Make radius smaller
+        else if (customMouseRadius > 1) {
+            customMouseRadius -= 1; // Make radius smaller
             
-            circleRadius <= 0 ? circleRadius = 1 : null; // Make sure circleRadius is never below 1px radius
+            customMouseRadius <= 0 ? customMouseRadius = 1 : null; // Make sure customMouseRadius is never below 1px radius
         }
 
         if (mouse) {
@@ -77,7 +77,7 @@ window.onload = () =>  {
             if (fromInput.target.value == "" || fromInput.target.value < 1 || fromInput.target.value > 2000) {
                 setBrushRadiusInput.value = 1;
             } else {
-                circleRadius = setBrushRadiusInput.value;
+                customMouseRadius = setBrushRadiusInput.value;
             }
         }
     }
@@ -88,11 +88,11 @@ window.onload = () =>  {
         if (fromInput) {
             alphaColor = myInput.target.value;
         } 
-        else if (alphaColor >= 1.0 && bigger) {
+        else if (alphaColor > 1 && bigger) {
             alphaColor = 1;
             myInput.value = 1;
         }
-        else if (alphaColor <= 0.1 && !bigger) {
+        else if (alphaColor < 0.1 && !bigger) {
             alphaColor = 0.1;
             myInput.value = 0.1;
         }
@@ -118,23 +118,28 @@ window.onload = () =>  {
     }
 
     draw = ev => {
+        // 'ev' refers to the mouse event
         if (shouldDraw) {
+            // Draw in the color selected by the user
             if (forceBrushColor.checked) {
+                // Transform HEX color to RGB equivalent
                 brushColor = jscolorInput.jscolor.toRGBString();
             }
-            ctx.moveTo(ev.clientX + circleRadius, ev.clientY);
+            ctx.moveTo(ev.clientX + customMouseRadius, ev.clientY);
             ctx.beginPath();
-            ctx.arc(ev.clientX, ev.clientY, circleRadius, 0, Math.PI*2, false); // Circle
+            ctx.arc(ev.clientX, ev.clientY, customMouseRadius, 0, Math.PI*2, false); // Draw circle at custom mouse position
+            ctx.fillStyle = brushColor;
+            ctx.strokeStyle = brushColor;
             ctx.fill();
             
             // Begin drawing
             document.onmousemove = (ev) => {
                 ctx.beginPath();
-                ctx.arc(ev.clientX, ev.clientY, circleRadius, 0, Math.PI*2, false); // Circle
+                ctx.arc(ev.clientX, ev.clientY, customMouseRadius, 0, Math.PI*2, false); // Draw circle at custom mouse position
                 ctx.fillStyle = brushColor;
                 ctx.strokeStyle = brushColor;
                 ctx.fill();
-                brushColor = forceBrushColor.checked ? brushColor : changingColor(brushColor); // if forceBrushColor is checked don't change current (selected) color
+                forceBrushColor.checked ? null : changingColor(brushColor); // if forceBrushColor (user selected color) is checked don't change color
                 setBrush(true, false, ev);
             }
         }
@@ -144,7 +149,7 @@ window.onload = () =>  {
         }
     }
 
-    // Clear entine canvas from drawings
+    // Clear entine canvas from drawings on secondary mouse button click
     clearCanvas = (ev) => {
         // Prevent context menu from showing
         window.oncontextmenu = () => false;
@@ -152,23 +157,23 @@ window.onload = () =>  {
         ctx.clearRect(0, 0, canvas.width, canvas.height);
     }
 
-    // Change brush color randomly on every new brush
+    // Change brush color randomly little by little
     changingColor = (initialColor) => {
         // Get the rgba color numbers
         let colorValues = initialColor.match(/\d{1,3}/g);
 
         // Add 1 to the value of each individual color of rgba()
-        let newC = colorValues.map((c, index, array) => {
+        let newC = colorValues.map((c, index) => {
             // Exclude alpha value from rgba()
             if (index < 3) {
-                let q = Math.floor(Math.random() * 5); // Get a random number by which current color is being increased or decreased
+                let q = Math.floor(Math.random() * 5); // Get a random number (0-5) by which current color is being increased or decreased
                 c = Number.parseInt(c); // Parse color value from text to number
 
                 if (c >= 255) {
-                    colorsIncreasing[index] = false; // Color starts decreasing
+                    colorsIncreasing[index] = false; // Color value starts decreasing
                 }
                 else if (c <= 0) {
-                    colorsIncreasing[index] = true; // Color starts increasing
+                    colorsIncreasing[index] = true; // Color value starts increasing
                 }
                 if (colorsIncreasing[index]) {
                     return c = c + q; // Increase value of color
@@ -202,7 +207,7 @@ window.onload = () =>  {
     // IIFE. Set initial settings of canvas custom cursor (brush) and brush color
     (function() {
         setOpacityInput.value = alphaColor;
-        setBrushRadiusInput.value = circleRadius;
+        setBrushRadiusInput.value = customMouseRadius;
         brushColor = randomColor();
         setCanvasDimensions();
     })();
@@ -214,7 +219,7 @@ window.onload = () =>  {
         setCanvasSnapshot(snapshot);
     })
 
-    // Make brush appear when mouse enters canvas
+    // Make brush (custom mouse) appear when mouse enters canvas
     document.addEventListener("mouseenter", ev => {
         brush.style.opacity = 1;
     });
@@ -226,7 +231,7 @@ window.onload = () =>  {
 
     // Start painting
     document.addEventListener("mousedown", ev => {
-        // Left mouse button
+        // If left mouse button down
         if (ev.which == 1) {
             shouldDraw = true;
             draw(ev);
@@ -251,7 +256,7 @@ window.onload = () =>  {
         setBrush(true, true, ev);
     });
 
-    // Handle making brush radius bigger or smalled when scrolling down or up
+    // Decide making brush radius bigger or smaller when scrolling up or down
     document.addEventListener("wheel", ev => {
         let scrollingUp;
 
@@ -276,22 +281,22 @@ window.onload = () =>  {
         }
     })
 
-    // Handle brush painting color selected by the user
+    // Set brush painting color of that selected by the user
     jscolorInput.addEventListener("input", ev => {
         setBrushColor(ev);
     });
 
-    // Handle brush radius set by the user
+    // Change brush radius by that set by the user
     setBrushRadiusInput.addEventListener("input", ev => {
         setBrushRadius(false, false, ev);
     });
 
-    // Handle brush painting opacity set by the user
+    // Change brush painting opacity by that set by the user
     setOpacityInput.addEventListener("input", ev => {
         setBrushOpacity(ev);
     });
     
-    // Handle clear entire canvas
+    // Call clear entire canvas
     clearCanvasButton.addEventListener("click", ev => {
         clearCanvas();
     });
